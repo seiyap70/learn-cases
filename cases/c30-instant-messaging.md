@@ -290,6 +290,240 @@ ES 索引设计（按用户分索引，实现数据隔离）：
 
 **解决方案：** 用会话内自增 seq 排序，而非 Snowflake ID 排序。
 
+### 消息存储：分库分表设计
+
+**50 亿条/天 × 永久存储 → 存储成本是核心问题。**
+
+```sql
+-- 分库分表策略：按 conversation_id 分 256 个库，每库按月分表
+-- conversation_id 哈希 → db_index = hash(conv_id) % 256
+-- 表名：messages_{db_index}_{yyyyMM}
+
+CREATE TABLE messages (
+    msg_id BIGINT PRIMARY KEY,        -- Snowflake ID
+    seq INT NOT NULL,                  -- 会话内序号
+    conversation_id VARCHAR(64) NOT NULL,
+    sender_id VARCHAR(64) NOT NULL,
+    content_type TINYINT NOT NULL,     -- 1=文本, 2=图片, 3=文件, 4=视频
+    content TEXT,                       -- 文本内容或文件URL
+    created_at TIMESTAMP NOT NULL,
+    INDEX idx_conv_seq (conversation_id, seq)
+);
+
+-- 存储成本估算：
+-- 每条消息平均 200 字节
+-- 50 亿条/天 × 200B = 1TB/天
+-- 30 天 = 30TB（热数据，MySQL）
+-- 1 年 = 365TB → 归档到对象存储（S3/OSS）
+-- MySQL 只保留最近 30 天，历史数据在 S3
+```
+
+**冷热分层存储：**
+
+| 层 | 存储 | 保留时间 | 查询延迟 | 成本 |
+|------|------|---------|---------|------|
+| 热数据 | MySQL 分库分表 | 最近 30 天 | < 10ms | ¥0.5/GB/月 |
+| 温数据 | Elasticsearch | 最近 90 天 | < 100ms | ¥0.3/GB/月 |
+| 冷数据 | 对象存储 | 永久 | 1-5 秒 | ¥0.05/GB/月 |
+
+**成本对比（1 年 365TB）：**
+
+| 方案 | 年成本 |
+|------|-------|
+| 全量 MySQL | ¥182 万（365TB × ¥0.5/GB） |
+| 冷热分层 | ¥11 万（30TB热 + 335TB冷） |
+
+### 消息撤回
+
+```python
+class MessageRecallService:
+    def recall(self, user_id, conversation_id, msg_seq):
+        """消息撤回（2 分钟内）"""
+        msg = self.get_message(conversation_id, msg_seq)
+        
+        # 检查撤回条件
+        if msg.sender_id != user_id:
+            raise PermissionDenied("只能撤回自己发的消息")
+        
+        if now() - msg.created_at > timedelta(minutes=2):
+            raise RecallTimeout("超过 2 分钟无法撤回")
+        
+        # 标记消息为已撤回（不删除，保留审计记录）
+        self.update_message(conversation_id, msg_seq, {
+            "content_type": 5,  # 5=已撤回
+            "content": "此消息已撤回",
+            "recalled_at": now()
+        })
+        
+        # 推送撤回通知给所有接收方
+        self.broadcast_recall(conversation_id, msg_seq)
+```
+
+### 离线推送策略
+
+```python
+class OfflinePushService:
+    def push_offline(self, user_id, msg):
+        """离线用户推送"""
+        # 1. 判断推送优先级
+        if msg.content_type == "text" and len(msg.content) < 50:
+            # 短文本 → 直接推送内容
+            self.push_service.send(user_id, {
+                "title": msg.sender_name,
+                "body": msg.content,
+                "type": "message"
+            })
+        elif msg.content_type == "image":
+            # 图片 → 推送"发送了一张图片"
+            self.push_service.send(user_id, {
+                "title": msg.sender_name,
+                "body": "发送了一张图片",
+                "type": "message"
+            })
+        else:
+            # 其他 → 推送"发送了一条消息"
+            self.push_service.send(user_id, {
+                "title": msg.sender_name,
+                "body": "发送了一条消息",
+                "type": "message"
+            })
+
+        # 2. 推送频率控制（避免骚扰）
+        # 每分钟最多 3 条推送通知
+        key = f"push_limit:{user_id}"
+        count = self.redis.incr(key)
+        if count == 1:
+            self.redis.expire(key, 60)
+        if count > 3:
+            # 超限 → 合并为一条"有N条新消息"
+            self.redis.set(f"push_merged:{user_id}", count)
+            return  # 不单独推送
+
+    def on_user_online(self, user_id):
+        """用户上线 → 取消合并推送，推送未读消息数"""
+        merged = self.redis.get(f"push_merged:{user_id}")
+        if merged:
+            self.push_service.cancel(user_id)  # 取消合并通知
+            self.push_to_user(user_id, f"你有 {merged} 条未读消息")
+```
+
+**推送渠道选择：**
+
+| 渠道 | 延迟 | 到达率 | 适用 |
+|------|------|-------|------|
+| APNs（iOS） | 1-3 秒 | 95% | 苹果设备 |
+| FCM（Android国际） | 1-3 秒 | 80% | 海外安卓 |
+| 厂商推送（华为/小米/OPPO） | < 1 秒 | 90% | 国内安卓 |
+| SMS | 10-30 秒 | 99% | 推送失败兜底 |
+
+### WebSocket 接入层
+
+```python
+class WebSocketGateway:
+    """WebSocket 接入网关"""
+
+    def on_connect(self, user_id, connection):
+        # 1. 记录用户连接信息
+        self.redis.hset(f"ws_conn:{user_id}", {
+            "gateway_id": self.gateway_id,
+            "connected_at": now().isoformat()
+        })
+
+        # 2. 设置在线状态
+        self.set_online(user_id)
+
+        # 3. 推送离线期间的消息
+        self.sync_offline_messages(user_id)
+
+    def on_disconnect(self, user_id):
+        # 1. 清除连接信息
+        self.redis.hdel(f"ws_conn:{user_id}")
+
+        # 2. 设置离线状态（延迟 30 秒，避免短暂断连）
+        self.schedule_set_offline(user_id, delay=30)
+
+    def on_message_from_client(self, user_id, data):
+        """客户端发送消息"""
+        msg = self.parse_message(data)
+        
+        # 转发给消息服务处理
+        self.message_service.send_message(msg)
+```
+
+**网关集群设计：**
+
+- 100 台网关服务器
+- 每台维持 30 万 WebSocket 连接（3000 万 DAU / 100 = 30 万）
+- 每台 16GB 内存（每个连接约 50KB）
+- 网关无状态 → 用户可以连任意网关
+
+### 消息不丢不重的完整流程
+
+```
+发送方 → 网关 → 消息服务 → 存储 → 推送 → 接收方
+
+1. 发送方发送 → 网关转发 → 消息服务
+2. 消息服务：生成 msg_id + seq → 存储到 MySQL → 返回确认给发送方
+3. 推送：查询在线状态 → 推送给在线用户 → 离线推送
+4. 接收方收到 → 客户端去重（msg_id）→ 显示
+
+失败场景：
+  步骤1失败 → 发送方未收到确认 → 重试 → 消息服务收到两条 → 用 client_msg_id 去重
+  步骤2失败 → 存储失败 → 不推送 → 发送方收到失败确认 → 重试
+  步骤3失败 → 推送失败 → 接收方上线时主动拉取 → 不丢消息
+  步骤4重复 → 客户端去重 → 不重显示
+```
+
+**服务端去重（client_msg_id）：**
+
+```python
+class MessageDeduplicator:
+    def dedup(self, msg):
+        """服务端去重：同一 client_msg_id 只处理一次"""
+        key = f"msg_dedup:{msg.sender_id}:{msg.client_msg_id}"
+        if self.redis.setnx(key, msg.msg_id):
+            self.redis.expire(key, 300)  # 5 分钟过期
+            return False  # 非重复
+        else:
+            # 重复消息 → 返回已处理的 msg_id
+            existing_msg_id = self.redis.get(key)
+            return existing_msg_id
+```
+
+## 常见陷阱（深度分析）
+
+### 陷阱 1：大群写扩散
+
+**具体计算：** 10 万人大群每秒 10 条消息 × 10 万写入 = 100 万 QPS。3 节点 Redis 集群勉强承受，但如果有 5 个这样的群 = 500 万 QPS → 不可行。
+
+### 陷阱 2：每条消息存已读状态
+
+**存储量：** 10 万群 × 10 条/秒 × 86400秒/天 × 10 万成员 = 86.4 万亿条记录 → 不可行。
+
+最大已读 seq 方案：3000 万 DAU × 平均 100 个会话 = 3 亿条记录 → 可行。
+
+### 陷阱 3：先推后存
+
+**消息丢失场景：** 推送成功但存储失败 → 接收方看到了消息但服务器无记录 → 消息"消失"（接收方刷新后找不到）。
+
+### 陷阱 4：消息 ID 不保证序
+
+**乱序场景：** 两个用户同时发消息，Snowflake ID 可能乱序（时钟偏差）→ 客户端显示顺序不正确 → 对话逻辑混乱。
+
+**解决方案：** 用会话内自增 seq 排序，而非 Snowflake ID 排序。
+
+### 陷阱 5：不做推送频率控制
+
+**后果：** 活跃群聊中离线用户每分钟收到 30+ 条推送通知 → 手机震动不停 → 用户体验极差 → 关闭通知 → 后续消息无法触达。
+
+**解决方案：** 每分钟最多 3 条推送，超限合并为"有N条新消息"。
+
+### 陷阱 6：全量 MySQL 存储
+
+**后果：** 50 亿条/天 × 永久存储 → 1 年 = 365TB → MySQL 年成本 ¥182 万 → 不可承受。
+
+**解决方案：** 冷热分层——MySQL 只存 30 天热数据，历史归档到对象存储（年成本 ¥11 万）。
+
 ## 延伸思考
 
 - **端到端加密**：服务器无法解密消息内容 → 搜索只能在客户端本地做。架构需增加密钥管理服务。
