@@ -12,38 +12,40 @@
 
 ## 案例索引
 
-| 编号 | 案例 | 难度 | 核心架构主题 | 业务领域 |
-|------|------|------|-------------|---------|
-| C01 | [秒杀系统的流量洪峰](cases/c01-flash-sale.md) | ★★★ | 限流 / 缓存 / 异步 | 电商 |
-| C02 | [分布式事务与订单一致性](cases/c02-distributed-transaction.md) | ★★★★ | Saga / 最终一致性 | 电商 |
-| C03 | [社交Feed流的实时推送](cases/c03-social-feed.md) | ★★★★ | 推拉模型 / 扇出 | 社交 |
-| C04 | [多租户SaaS的数据隔离](cases/c04-multi-tenant-saas.md) | ★★★ | 租户隔离 / schema设计 | SaaS |
-| C05 | [IoT设备海量时序数据](cases/c05-iot-timeseries.md) | ★★★★ | 时序存储 / 降采样 | IoT |
-| C06 | [在线协同编辑的冲突解决](cases/c06-collaborative-editing.md) | ★★★★★ | CRDT / OT / 实时同步 | 协作 |
-| C07 | [金融级账户余额系统](cases/c07-financial-ledger.md) | ★★★★★ | 事件溯源 / 对账 / 幂等 | 金融 |
-| C08 | [视频平台的推荐架构](cases/c08-video-recommendation.md) | ★★★★ | 特征工程 / 实时+批处理 | 媒体 |
-| C09 | [全球用户的位置服务](cases/c09-geolocation-service.md) | ★★★ | 地理索引 / 就近路由 | O2O |
-| C10 | [微服务下的可观测性体系](cases/c10-observability.md) | ★★★ | 日志/指标/链路追踪 | 通用 |
-| C11 | [医疗影像的存储与阅片](cases/c11-medical-imaging.md) | ★★★★ | 大文件存储 / DICOM / 边缘计算 | 医疗 |
-| C12 | [游戏服的匹配与房间管理](cases/c12-game-matchmaking.md) | ★★★★ | 有状态服务 / 匹配算法 / 弹性扩缩 | 游戏 |
-| C13 | [物流履约的状态机引擎](cases/c13-logistics-statemachine.md) | ★★★ | 状态机 / 工作流 / 异常恢复 | 物流 |
-| C14 | [内容审核的多级流水线](cases/c14-content-moderation.md) | ★★★ | 流水线编排 / AI+人工 | 社交/媒体 |
-| C15 | [网约车的派单系统](cases/c15-ride-dispatch.md) | ★★★★★ | 实时匹配 / 空间索引 / 公平调度 | 出行 |
-| C16 | [跨境支付的多币种结算](cases/c16-cross-border-payment.md) | ★★★★★ | 汇率 / 合规 / 对账 / 幂等 | 金融 |
-| C17 | [直播弹幕的高并发写入](cases/c17-live-danmaku.md) | ★★★ | 写扩散 / 消息聚合 / 弹幕渲染 | 直播 |
-| C18 | [企业权限的RBAC+ABAC混合模型](cases/c18-permission-model.md) | ★★★★ | 权限模型 / 策略引擎 | 企业 |
-| C19 | [数据平台的实时数仓建设](cases/c19-realtime-datawarehouse.md) | ★★★★ | Lambda/Kappa / CDC / 物化视图 | 数据 |
-| C20 | [智能家居的场景联动引擎](cases/c20-smart-home-automation.md) | ★★★ | 规则引擎 / 设备影子 / 离线 | IoT |
-| C21 | [AI模型服务的在线推理架构](cases/c21-ai-inference.md) | ★★★★ | GPU调度 / 批处理 / 流式输出 | AI |
-| C22 | [在线教育的直播互动系统](cases/c22-online-education.md) | ★★★★ | 白板同步 / 大小班 / 多流录制 | 教育 |
-| C23 | [边缘计算的CDN智能调度](cases/c23-edge-cdn.md) | ★★★★ | 就近路由 / 缓存失效 / 边缘函数 | CDN |
-| C24 | [区块链数字资产交易平台](cases/c24-blockchain-exchange.md) | ★★★★★ | 链上链下 / 多链抽象 / MEV防护 | Web3 |
-| C25 | [企业级DevOps平台的CI/CD系统](cases/c25-devops-cicd.md) | ★★★★ | 资源调度 / 金丝雀发布 / 多集群 | DevOps |
-| C26 | [供应链的库存优化系统](cases/c26-supply-chain.md) | ★★★★ | 多级库存 / 需求预测 / 安全库存 | 供应链 |
-| C27 | [新能源车的充电桩调度系统](cases/c27-ev-charging.md) | ★★★★ | 设备影子 / 动态电价 / 电网联动 | 能源 |
-| C28 | [在线问卷与A/B测试平台](cases/c28-ab-testing.md) | ★★★★ | 分流一致性 / 实验互斥 / 统计显著性 | 增长 |
-| C29 | [自动驾驶的数据闭环系统](cases/c29-autonomous-driving.md) | ★★★★★ | 边缘挖掘 / 数据闭环 / 仿真验证 | 自动驾驶 |
-| C30 | [大规模即时通讯系统](cases/c30-instant-messaging.md) | ★★★★★ | 消息投递 / 大群扇出 / 在线状态 | 通讯 |
+> 每个案例包含：数据库设计（SQL DDL）· 可运行代码实现 · 异常场景演练 · 性能与成本分析 · 架构决策对比
+
+| 编号 | 案例 | 难度 | 核心架构主题 | 业务领域 | 行数 | 深度内容亮点 |
+|------|------|------|-------------|---------|------|-------------|
+| C01 | [秒杀系统的流量洪峰](cases/c01-flash-sale.md) | ★★★ | 限流 / 缓存 / 异步 | 电商 | 2791 | 多级限流、Redis原子预扣减、链接泄露防护、幂等下单 |
+| C02 | [分布式事务与订单一致性](cases/c02-distributed-transaction.md) | ★★★★ | Saga / 最终一致性 | 电商 | 3395 | TCC/Saga编排+协作、Outbox模式、2PC恢复、消息乱序 |
+| C03 | [社交Feed流的实时推送](cases/c03-social-feed.md) | ★★★★ | 推拉模型 / 扇出 | 社交 | 2844 | 推拉混合模型、热帖限流、大V写扩散风暴、缓存雪崩 |
+| C04 | [多租户SaaS的数据隔离](cases/c04-multi-tenant-saas.md) | ★★★ | 租户隔离 / schema设计 | SaaS | 2778 | 自动化配置、CDC层级迁移、GDPR数据导出、自定义品牌 |
+| C05 | [IoT设备海量时序数据](cases/c05-iot-timeseries.md) | ★★★★ | 时序存储 / 降采样 | IoT | 2796 | 多级降采样、Z-score异常检测、TimescaleDB连续聚合 |
+| C06 | [在线协同编辑的冲突解决](cases/c06-collaborative-editing.md) | ★★★★★ | CRDT / OT / 实时同步 | 协作 | 4350 | CRDT/OT完整实现、冲突解决、离线同步 |
+| C07 | [金融级账户余额系统](cases/c07-financial-ledger.md) | ★★★★★ | 事件溯源 / 对账 / 幂等 | 金融 | 2898 | 冻结/解冻机制、现金流量表、银行对账引擎、哈希链校验 |
+| C08 | [视频平台的推荐架构](cases/c08-video-recommendation.md) | ★★★★ | 特征工程 / 实时+批处理 | 媒体 | 3184 | 特征工程、实时+批处理推荐 |
+| C09 | [全球用户的位置服务](cases/c09-geolocation-service.md) | ★★★ | 地理索引 / 就近路由 | O2O | 3310 | 地理围栏引擎、轨迹分析、GPS漂移过滤、Redis GEO |
+| C10 | [微服务下的可观测性体系](cases/c10-observability.md) | ★★★ | 日志/指标/链路追踪 | 通用 | 2767 | SLO/SLI框架、自适应采样、OTEL配置、告警收敛 |
+| C11 | [医疗影像的存储与阅片](cases/c11-medical-imaging.md) | ★★★★ | 大文件存储 / DICOM / 边缘计算 | 医疗 | 2781 | DICOM管理、AI辅助诊断、PACS集成、报告NLP |
+| C12 | [游戏服的匹配与房间管理](cases/c12-game-matchmaking.md) | ★★★★ | 有状态服务 / 匹配算法 / 弹性扩缩 | 游戏 | 4154 | 技能匹配、ELO评分、MMR操纵检测、排队降级 |
+| C13 | [物流履约的状态机引擎](cases/c13-logistics-statemachine.md) | ★★★ | 状态机 / 工作流 / 异常恢复 | 物流 | 2823 | 事件溯源、补偿动作注册器、SLA监控与赔付 |
+| C14 | [内容审核的多级流水线](cases/c14-content-moderation.md) | ★★★ | 流水线编排 / AI+人工 | 社交/媒体 | 3989 | 多级流水线、AI+人工审核 |
+| C15 | [网约车的派单系统](cases/c15-ride-dispatch.md) | ★★★★★ | 实时匹配 / 空间索引 / 公平调度 | 出行 | 2887 | 多策略派单引擎、超时重派、供需失衡动态定价 |
+| C16 | [跨境支付的多币种结算](cases/c16-cross-border-payment.md) | ★★★★★ | 汇率 / 合规 / 对账 / 幂等 | 金融 | 3829 | FX实时汇率+锁定+兜底、支付状态追踪、批量净额结算 |
+| C17 | [直播弹幕的高并发写入](cases/c17-live-danmaku.md) | ★★★ | 写扩散 / 消息聚合 / 弹幕渲染 | 直播 | 3260 | 写扩散、消息聚合 |
+| C18 | [企业权限的RBAC+ABAC混合模型](cases/c18-permission-model.md) | ★★★★ | 权限模型 / 策略引擎 | 企业 | 4236 | RBAC+ABAC混合模型 |
+| C19 | [数据平台的实时数仓建设](cases/c19-realtime-datawarehouse.md) | ★★★★ | Lambda/Kappa / CDC / 物化视图 | 数据 | 2777 | Flink SQL ETL、SCD Type 2、数据质量监控、数据血缘 |
+| C20 | [智能家居的场景联动引擎](cases/c20-smart-home-automation.md) | ★★★ | 规则引擎 / 设备影子 / 离线 | IoT | 2822 | OTA固件管理、Zigbee Mesh、语音助手、家庭安防 |
+| C21 | [AI模型服务的在线推理架构](cases/c21-ai-inference.md) | ★★★★ | GPU调度 / 批处理 / 流式输出 | AI | 3826 | GPU调度、模型版本控制、Token限流 |
+| C22 | [在线教育的直播互动系统](cases/c22-online-education.md) | ★★★★ | 白板同步 / 大小班 / 多流录制 | 教育 | 2818 | 自适应学习路径、抄袭检测(TF-IDF+AST) |
+| C23 | [边缘计算的CDN智能调度](cases/c23-edge-cdn.md) | ★★★★ | 就近路由 / 缓存失效 / 边缘函数 | CDN | 3650 | 实时分析流水线、热Key防护、缓存失效限流 |
+| C24 | [区块链数字资产交易平台](cases/c24-blockchain-exchange.md) | ★★★★★ | 链上链下 / 多链抽象 / MEV防护 | Web3 | 2856 | 链上监控、冷热钱包管理、MEV防护 |
+| C25 | [企业级DevOps平台的CI/CD系统](cases/c25-devops-cicd.md) | ★★★★ | 资源调度 / 金丝雀发布 / 多集群 | DevOps | 2756 | GitOps、Secret轮换、蓝绿部署、DORA指标 |
+| C26 | [供应链的库存优化系统](cases/c26-supply-chain.md) | ★★★★ | 多级库存 / 需求预测 / 安全库存 | 供应链 | 2798 | 需求预测、供应商评分、WMS仓储、物流路由优化 |
+| C27 | [新能源车的充电桩调度系统](cases/c27-ev-charging.md) | ★★★★ | 设备影子 / 动态电价 / 电网联动 | 能源 | 2855 | 动态电价策略、预约排队、电网负荷联动 |
+| C28 | [在线问卷与A/B测试平台](cases/c28-ab-testing.md) | ★★★★ | 分流一致性 / 实验互斥 / 统计显著性 | 增长 | 4214 | 序贯检验、多重比较校正、辛普森悖论检测 |
+| C29 | [自动驾驶的数据闭环系统](cases/c29-autonomous-driving.md) | ★★★★★ | 边缘挖掘 / 数据闭环 / 仿真验证 | 自动驾驶 | 2791 | OTA安全部署、感知模型集成、HD地图管理 |
+| C30 | [大规模即时通讯系统](cases/c30-instant-messaging.md) | ★★★★★ | 消息投递 / 大群扇出 / 在线状态 | 通讯 | 4399 | 消息投递、大群扇出 |
 
 ## 辅助材料
 
